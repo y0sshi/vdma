@@ -35,10 +35,14 @@ module zynq_ps_interface
 		output wire PixelClk,
 		output wire SerialClk,
 		output wire vid_rstn,
-		output wire vid_hsync,
-		output wire vid_vsync,
-		output wire vid_VDE,
-		output wire [23:0] vid_data,
+		output wire vid_out_hsync,
+		output wire vid_out_vsync,
+		output wire vid_out_VDE,
+		output wire [23:0] vid_out_data,
+		input  wire vid_in_hsync,
+		input  wire vid_in_vsync,
+		input  wire vid_in_VDE,
+		input  wire [23:0] vid_in_data,
 
 		/* Test */
 		input  wire [3:0]  sw,
@@ -68,13 +72,20 @@ module zynq_ps_interface
 		
 
 		/* Video Direct Memory Access */
-		.PixelClk                (PixelClk ),
-		.SerialClk               (SerialClk),
-		.vid_locked              (vid_rstn ),
-		.vid_io_out_data         (vid_data ),
-		.vid_io_out_hsync        (vid_hsync),
-		.vid_io_out_vsync        (vid_vsync),
-		.vid_io_out_active_video (vid_VDE  ),
+		.PixelClk                (PixelClk     ),
+		.SerialClk               (SerialClk    ),
+		.vid_locked              (vid_rstn     ),
+		.vid_io_out_data         (vid_out_data ),
+		.vid_io_out_hsync        (vid_out_hsync),
+		.vid_io_out_vsync        (vid_out_vsync),
+		.vid_io_out_active_video (vid_out_VDE  ),
+		.vid_io_in_data          (vid_in_data  ),
+		.vid_io_in_hsync         (vid_in_hsync ),
+		.vid_io_in_vsync         (vid_in_vsync ),
+		.vid_io_in_active_video  (),
+		.vid_io_in_field         (),
+		.vid_io_in_hblank        (),
+		.vid_io_in_vblank        (),
 
 		/* wires of zynq_processor */
 		.axi_araddr   (axi_araddr  ),

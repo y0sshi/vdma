@@ -239,7 +239,7 @@ connect_bd_net [get_bd_pins axi_vdma_0/mm2s_introut] [get_bd_pins xlconcat_0/In1
 connect_bd_net [get_bd_pins axi_vdma_0/s2mm_introut] [get_bd_pins xlconcat_0/In2]
 connect_bd_net [get_bd_pins xlconcat_0/dout] [get_bd_pins processing_system7_0/IRQ_F2P]
 
-# add AXI4-Stream to Video-Out ip
+# add AXI4-Stream to Video Out ip
 create_bd_cell -type ip -vlnv xilinx.com:ip:v_axi4s_vid_out:4.0 v_axi4s_vid_out_0
 set_property -dict [list \
 CONFIG.C_HAS_ASYNC_CLK {1}\
@@ -252,6 +252,19 @@ connect_bd_net [get_bd_pins rst_clk_wiz_0_50M/peripheral_aresetn] [get_bd_pins v
 connect_bd_net [get_bd_pins DVIClocking_0/PixelClk] [get_bd_pins v_axi4s_vid_out_0/vid_io_out_clk]
 connect_bd_net [get_bd_pins rst_video_dynclk/peripheral_reset] [get_bd_pins v_axi4s_vid_out_0/vid_io_out_reset]
 connect_bd_net [get_bd_pins v_axi4s_vid_out_0/vtg_ce] [get_bd_pins v_tc_0/gen_clken]
+
+# add Video In to AXI4-Stream IP
+create_bd_cell -type ip -vlnv xilinx.com:ip:v_vid_in_axi4s:4.0 v_vid_in_axi4s_0
+set_property -dict [list \
+CONFIG.C_HAS_ASYNC_CLK {1} \
+] [get_bd_cells v_vid_in_axi4s_0]
+connect_bd_net [get_bd_pins clk_wiz_0/clk_150m] [get_bd_pins v_vid_in_axi4s_0/aclk]
+connect_bd_net [get_bd_pins rst_clk_wiz_0_50M/peripheral_aresetn] [get_bd_pins v_vid_in_axi4s_0/aresetn]
+connect_bd_net [get_bd_pins DVIClocking_0/PixelClk] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_clk]
+connect_bd_net [get_bd_pins rst_video_dynclk/peripheral_reset] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_reset]
+connect_bd_intf_net [get_bd_intf_pins v_vid_in_axi4s_0/video_out] [get_bd_intf_pins axi_vdma_0/S_AXIS_S2MM]
+make_bd_intf_pins_external  [get_bd_intf_pins v_vid_in_axi4s_0/vid_io_in]
+set_property name vid_io_in [get_bd_intf_ports vid_io_in_0]
 
 # Assign Address-Map
 assign_bd_address [get_bd_addr_segs {zynq_processor_0/S00_AXI/S00_AXI_reg }]
@@ -333,12 +346,13 @@ catch { config_ip_cache -export [get_ips -all block_design_v_axi4s_vid_out_0_0] 
 catch { config_ip_cache -export [get_ips -all block_design_s00_mmu_0] }
 catch { config_ip_cache -export [get_ips -all block_design_auto_pc_1] }
 catch { config_ip_cache -export [get_ips -all block_design_auto_pc_2] }
+catch { config_ip_cache -export [get_ips -all block_design_v_vid_in_axi4s_0_0] }
 
 export_ip_user_files -of_objects [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/ip/rgb2dvi_0/rgb2dvi_0.xci] -no_script -sync -force -quiet
 export_ip_user_files -of_objects [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd] -no_script -sync -force -quiet
 create_ip_run [get_files -of_objects [get_fileset sources_1] ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/ip/rgb2dvi_0/rgb2dvi_0.xci]
 create_ip_run [get_files -of_objects [get_fileset sources_1] ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd]
-launch_runs -jobs ${JOBS} {rgb2dvi_0_synth_1 block_design_clk_wiz_0_0_synth_1 block_design_processing_system7_0_0_synth_1 block_design_zynq_processor_0_0_synth_1 block_design_rst_clk_wiz_0_50M_0_synth_1 block_design_auto_pc_0_synth_1 block_design_xbar_0_synth_1 block_design_video_dynclk_0_synth_1 block_design_rst_video_dynclk_0_synth_1 block_design_DVIClocking_0_0_synth_1 block_design_axi_vdma_0_0_synth_1 block_design_v_tc_0_0_synth_1 block_design_v_axi4s_vid_out_0_0_synth_1 block_design_s00_mmu_0_synth_1 block_design_auto_pc_1_synth_1 block_design_auto_pc_2_synth_1}
+launch_runs -jobs ${JOBS} {rgb2dvi_0_synth_1 block_design_clk_wiz_0_0_synth_1 block_design_processing_system7_0_0_synth_1 block_design_zynq_processor_0_0_synth_1 block_design_rst_clk_wiz_0_50M_0_synth_1 block_design_auto_pc_0_synth_1 block_design_xbar_0_synth_1 block_design_video_dynclk_0_synth_1 block_design_rst_video_dynclk_0_synth_1 block_design_DVIClocking_0_0_synth_1 block_design_axi_vdma_0_0_synth_1 block_design_v_tc_0_0_synth_1 block_design_v_axi4s_vid_out_0_0_synth_1 block_design_s00_mmu_0_synth_1 block_design_auto_pc_1_synth_1 block_design_auto_pc_2_synth_1 block_design_v_vid_in_axi4s_0_0_synth_1}
 export_simulation -of_objects [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd] -directory ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.ip_user_files/sim_scripts -ip_user_files_dir ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.ip_user_files -ipstatic_source_dir ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.ip_user_files/ipstatic -lib_map_path [list {modelsim=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/modelsim} {questa=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/questa} {ies=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/ies} {xcelium=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/xcelium} {vcs=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/vcs} {riviera=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/riviera}] -use_ip_compiled_libs -force -quiet
 
 # create hdl-wrapper of block design
