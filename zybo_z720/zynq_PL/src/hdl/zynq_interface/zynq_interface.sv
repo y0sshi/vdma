@@ -53,6 +53,14 @@ module zynq_ps_interface
 	localparam integer ADDR_LSB = (C_S_AXI_DATA_WIDTH/32) + 1;
 	localparam integer OPT_MEM_ADDR_BITS = 4;
 
+    /* pixel clock buffer */
+    wire PixelClk_buf;
+    BUFG BUFG_inst (
+        .I (PixelClk_buf),
+        .O (PixelClk    )
+    );
+    //assign PixelClk = PixelClk_buf;
+
 	/* wires of zynq_processor */
 	reg  [C_S_AXI_DATA_WIDTH-1:0] reg_data_out;
 	wire [C_S_AXI_ADDR_WIDTH-1:0] axi_araddr;
@@ -72,7 +80,7 @@ module zynq_ps_interface
 		
 
 		/* Video Direct Memory Access */
-		.PixelClk                (PixelClk     ),
+		.PixelClk                (PixelClk_buf ),
 		.SerialClk               (SerialClk    ),
 		.vid_locked              (vid_rstn     ),
 		.vid_io_out_data         (vid_out_data ),

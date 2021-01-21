@@ -28,14 +28,14 @@ module vid_cnt2sync
 	reg hsync;
 	always @(posedge clk) begin
 		if (rst) begin
-			hsync <= 1'b0;
+			hsync <= 1'b1;
 		end
 		else begin
 			if      (in_hcnt == H_ACTIVE + H_FRONT_PORCH - 1) begin
-				hsync <= 1'b1;
+				hsync <= 1'b0;
 			end
 			else if (in_hcnt == H_ACTIVE + H_FRONT_PORCH + H_SYNC_WIDTH - 1) begin
-				hsync <= 1'b0;
+				hsync <= 1'b1;
 			end
 		end
 	end
@@ -44,15 +44,17 @@ module vid_cnt2sync
 	reg vsync;
 	always @(posedge clk) begin
 		if (rst) begin
-			vsync <= 1'b0;
+			vsync <= 1'b1;
 		end
 		else begin
+		  if (in_hcnt == H_ACTIVE + H_FRONT_PORCH -1) begin
 			if      (in_vcnt == V_ACTIVE + V_FRONT_PORCH) begin
-				vsync <= 1'b1;
-			end
-			else if (in_vcnt == V_ACTIVE + V_FRONT_PORCH + V_SYNC_WIDTH) begin
 				vsync <= 1'b0;
 			end
+			else if (in_vcnt == V_ACTIVE + V_FRONT_PORCH + V_SYNC_WIDTH) begin
+				vsync <= 1'b1;
+			end
+		  end
 		end
 	end
 

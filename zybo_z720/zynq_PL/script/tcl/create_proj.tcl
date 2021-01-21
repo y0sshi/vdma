@@ -41,6 +41,7 @@ update_compile_order -fileset sources_1
 # add Clocking_Wizard
 create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0
 set_property -dict [list CONFIG.PRIM_IN_FREQ.VALUE_SRC USER] [get_bd_cells clk_wiz_0]
+## 1080p
 set_property -dict [list                                 \
 CONFIG.PRIM_IN_FREQ {50.000}                             \
 CONFIG.CLKOUT2_USED {true}                               \
@@ -65,6 +66,15 @@ CONFIG.PRIM_SOURCE {Global_buffer}                       \
 CONFIG.CLKOUT1_DRIVES {BUFG}                             \
 CONFIG.CLKOUT2_DRIVES {BUFG}                             \
 ] [get_bd_cells clk_wiz_0]
+## VGA
+set_property -dict [list                \
+CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {125} \
+CONFIG.MMCM_DIVCLK_DIVIDE {1}           \
+CONFIG.MMCM_CLKFBOUT_MULT_F {20.000}    \
+CONFIG.MMCM_CLKOUT0_DIVIDE_F {8.000}    \
+CONFIG.CLKOUT1_JITTER {154.207}         \
+CONFIG.CLKOUT1_PHASE_ERROR {164.985}    \
+] [get_bd_cells video_dynclk]
 
 # add Zynq Processing System ip
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
@@ -201,6 +211,7 @@ connect_bd_intf_net [get_bd_intf_pins axi_vdma_0/M_AXI_S2MM] -boundary_type uppe
 
 # add Video Timing Contoroller
 create_bd_cell -type ip -vlnv xilinx.com:ip:v_tc:6.1 v_tc_0
+## 1080p
 set_property -dict [list           \
 CONFIG.VIDEO_MODE {1080p}          \
 CONFIG.GEN_F0_VSYNC_VSTART {1083}  \
@@ -224,6 +235,29 @@ CONFIG.GEN_F0_VBLANK_HSTART {1920} \
 CONFIG.GEN_F1_VBLANK_HSTART {1920} \
 CONFIG.enable_detection {false}    \
 CONFIG.enable_generation {true}    \
+] [get_bd_cells v_tc_0]
+## VGA
+set_property -dict [list          \
+CONFIG.VIDEO_MODE {640x480p}      \
+CONFIG.GEN_F0_VSYNC_VSTART {489}  \
+CONFIG.GEN_F1_VSYNC_VSTART {489}  \
+CONFIG.GEN_HACTIVE_SIZE {640}     \
+CONFIG.GEN_HSYNC_END {752}        \
+CONFIG.GEN_HFRAME_SIZE {800}      \
+CONFIG.GEN_F0_VSYNC_HSTART {640}  \
+CONFIG.GEN_F1_VSYNC_HSTART {640}  \
+CONFIG.GEN_F0_VSYNC_HEND {640}    \
+CONFIG.GEN_F1_VSYNC_HEND {640}    \
+CONFIG.GEN_F0_VFRAME_SIZE {525}   \
+CONFIG.GEN_F1_VFRAME_SIZE {525}   \
+CONFIG.GEN_F0_VSYNC_VEND {491}    \
+CONFIG.GEN_F1_VSYNC_VEND {491}    \
+CONFIG.GEN_F0_VBLANK_HEND {640}   \
+CONFIG.GEN_F1_VBLANK_HEND {640}   \
+CONFIG.GEN_HSYNC_START {656}      \
+CONFIG.GEN_VACTIVE_SIZE {480}     \
+CONFIG.GEN_F0_VBLANK_HSTART {640} \
+CONFIG.GEN_F1_VBLANK_HSTART {640} \
 ] [get_bd_cells v_tc_0]
 connect_bd_intf_net -boundary_type upper [get_bd_intf_pins ps7_0_axi_periph/M03_AXI] [get_bd_intf_pins v_tc_0/ctrl]
 connect_bd_net [get_bd_pins DVIClocking_0/PixelClk] [get_bd_pins v_tc_0/clk]
@@ -262,9 +296,35 @@ connect_bd_net [get_bd_pins clk_wiz_0/clk_150m] [get_bd_pins v_vid_in_axi4s_0/ac
 connect_bd_net [get_bd_pins rst_clk_wiz_0_50M/peripheral_aresetn] [get_bd_pins v_vid_in_axi4s_0/aresetn]
 connect_bd_net [get_bd_pins DVIClocking_0/PixelClk] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_clk]
 connect_bd_net [get_bd_pins rst_video_dynclk/peripheral_reset] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_reset]
-connect_bd_intf_net [get_bd_intf_pins v_vid_in_axi4s_0/video_out] [get_bd_intf_pins axi_vdma_0/S_AXIS_S2MM]
 make_bd_intf_pins_external  [get_bd_intf_pins v_vid_in_axi4s_0/vid_io_in]
 set_property name vid_io_in [get_bd_intf_ports vid_io_in_0]
+
+# add AXI4-Stream Subset Converter
+create_bd_cell -type ip -vlnv xilinx.com:ip:axis_subset_converter:1.1 axis_subset_converter_0
+set_property -dict [list                \
+CONFIG.S_TDATA_NUM_BYTES.VALUE_SRC USER \
+CONFIG.M_TDATA_NUM_BYTES.VALUE_SRC USER \
+CONFIG.S_TUSER_WIDTH.VALUE_SRC USER     \
+CONFIG.M_TUSER_WIDTH.VALUE_SRC USER     \
+CONFIG.S_HAS_TLAST.VALUE_SRC USER       \
+CONFIG.M_HAS_TKEEP.VALUE_SRC USER       \
+CONFIG.M_HAS_TLAST.VALUE_SRC USER       \
+CONFIG.S_TDATA_NUM_BYTES {3}            \
+CONFIG.M_TDATA_NUM_BYTES {3}            \
+CONFIG.S_TUSER_WIDTH {1}                \
+CONFIG.M_TUSER_WIDTH {1}                \
+CONFIG.S_HAS_TLAST {1}                  \
+CONFIG.M_HAS_TKEEP {1}                  \
+CONFIG.M_HAS_TLAST {1}                  \
+CONFIG.TDATA_REMAP {tdata[23:0]}        \
+CONFIG.TUSER_REMAP {tuser[0:0]}         \
+CONFIG.TKEEP_REMAP {3'b111}             \
+CONFIG.TLAST_REMAP {tlast[0]}           \
+] [get_bd_cells axis_subset_converter_0]
+connect_bd_intf_net [get_bd_intf_pins v_vid_in_axi4s_0/video_out] [get_bd_intf_pins axis_subset_converter_0/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_subset_converter_0/M_AXIS] [get_bd_intf_pins axi_vdma_0/S_AXIS_S2MM]
+connect_bd_net [get_bd_pins clk_wiz_0/clk_150m] [get_bd_pins axis_subset_converter_0/aclk]
+connect_bd_net [get_bd_pins rst_clk_wiz_0_50M/peripheral_aresetn] [get_bd_pins axis_subset_converter_0/aresetn]
 
 # Assign Address-Map
 assign_bd_address [get_bd_addr_segs {zynq_processor_0/S00_AXI/S00_AXI_reg }]
@@ -347,12 +407,13 @@ catch { config_ip_cache -export [get_ips -all block_design_s00_mmu_0] }
 catch { config_ip_cache -export [get_ips -all block_design_auto_pc_1] }
 catch { config_ip_cache -export [get_ips -all block_design_auto_pc_2] }
 catch { config_ip_cache -export [get_ips -all block_design_v_vid_in_axi4s_0_0] }
+catch { config_ip_cache -export [get_ips -all block_design_axis_subset_converter_0] }
 
 export_ip_user_files -of_objects [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/ip/rgb2dvi_0/rgb2dvi_0.xci] -no_script -sync -force -quiet
 export_ip_user_files -of_objects [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd] -no_script -sync -force -quiet
 create_ip_run [get_files -of_objects [get_fileset sources_1] ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/ip/rgb2dvi_0/rgb2dvi_0.xci]
 create_ip_run [get_files -of_objects [get_fileset sources_1] ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd]
-launch_runs -jobs ${JOBS} {rgb2dvi_0_synth_1 block_design_clk_wiz_0_0_synth_1 block_design_processing_system7_0_0_synth_1 block_design_zynq_processor_0_0_synth_1 block_design_rst_clk_wiz_0_50M_0_synth_1 block_design_auto_pc_0_synth_1 block_design_xbar_0_synth_1 block_design_video_dynclk_0_synth_1 block_design_rst_video_dynclk_0_synth_1 block_design_DVIClocking_0_0_synth_1 block_design_axi_vdma_0_0_synth_1 block_design_v_tc_0_0_synth_1 block_design_v_axi4s_vid_out_0_0_synth_1 block_design_s00_mmu_0_synth_1 block_design_auto_pc_1_synth_1 block_design_auto_pc_2_synth_1 block_design_v_vid_in_axi4s_0_0_synth_1}
+launch_runs -jobs ${JOBS} {rgb2dvi_0_synth_1 block_design_clk_wiz_0_0_synth_1 block_design_processing_system7_0_0_synth_1 block_design_zynq_processor_0_0_synth_1 block_design_rst_clk_wiz_0_50M_0_synth_1 block_design_auto_pc_0_synth_1 block_design_xbar_0_synth_1 block_design_video_dynclk_0_synth_1 block_design_rst_video_dynclk_0_synth_1 block_design_DVIClocking_0_0_synth_1 block_design_axi_vdma_0_0_synth_1 block_design_v_tc_0_0_synth_1 block_design_v_axi4s_vid_out_0_0_synth_1 block_design_s00_mmu_0_synth_1 block_design_auto_pc_1_synth_1 block_design_auto_pc_2_synth_1 block_design_v_vid_in_axi4s_0_0_synth_1 block_design_axis_subset_converter_0_synth_1}
 export_simulation -of_objects [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd] -directory ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.ip_user_files/sim_scripts -ip_user_files_dir ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.ip_user_files -ipstatic_source_dir ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.ip_user_files/ipstatic -lib_map_path [list {modelsim=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/modelsim} {questa=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/questa} {ies=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/ies} {xcelium=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/xcelium} {vcs=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/vcs} {riviera=${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.cache/compile_simlib/riviera}] -use_ip_compiled_libs -force -quiet
 
 # create hdl-wrapper of block design

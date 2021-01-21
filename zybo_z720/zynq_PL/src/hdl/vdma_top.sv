@@ -64,6 +64,7 @@ module vdma_top
 	wire vid_out_hsync, vid_out_vsync, vid_out_VDE;
 	wire [$clog2(VID_H_FRAME)-1:0] vid_out_hcnt;
 	wire [$clog2(VID_V_FRAME)-1:0] vid_out_vcnt;
+	wire vid_out_hblank, vid_out_vblank, vid_out_field;
 	wire [7:0] vid_in_r, vid_in_g, vid_in_b;
 	wire [7:0] vid_out_r, vid_out_g, vid_out_b;
 
@@ -95,15 +96,27 @@ module vdma_top
 		.V_FRAME    (VID_V_FRAME ),
 		.RAM_SIZE   (4096        )
 	) image_processor_inst (
-		.clk      (PixelClk    ),
-		.rst      (!vid_rstn   ),
-		.in_data  ({vid_in_r, vid_in_g, vid_in_b}),
-		.in_vcnt  (vid_in_vcnt ),
-		.in_hcnt  (vid_in_hcnt ),
-		.out_data ({vid_out_r, vid_out_g, vid_out_b}),
-		.out_vcnt (vid_out_vcnt),
-		.out_hcnt (vid_out_hcnt),
-		.out_vde  (vid_out_VDE )
+		.clk        (PixelClk      ),
+		.rst        (!vid_rstn     ),
+		.sw         (sw            ),
+		.in_data    ({vid_in_r, vid_in_g, vid_in_b}),
+		.in_vcnt    (vid_in_vcnt   ),
+		.in_hcnt    (vid_in_hcnt   ),
+		.out_data   ({vid_out_r, vid_out_g, vid_out_b}),
+		.out_vcnt   (vid_out_vcnt  ),
+		.out_hcnt   (vid_out_hcnt  ),
+		.out_hblank (vid_out_hblank),
+		.out_vblank (vid_out_vblank),
+		.out_field  (vid_out_field ),
+		.out_vde    (vid_out_VDE   ),
+		.in_lsdbuf_addr          (),
+		.in_lsdbuf_write_protect (),
+		.out_lsdbuf_line_num     (),
+		.out_lsdbuf_start_v      (),
+		.out_lsdbuf_start_h      (),
+		.out_lsdbuf_end_v        (),
+		.out_lsdbuf_end_h        (),
+		.out_lsdbuf_ready        ()
 	);
 
 	/* Count to Video Sync */
@@ -135,16 +148,16 @@ module vdma_top
 		.ps_clk    (ps_clk), // 50 MHz
 
 		/* Video Direct Memory Access */
-		.PixelClk      (PixelClk ),
-		.SerialClk     (SerialClk),
-		.vid_rstn      (vid_rstn ),
-		.vid_out_VDE   (vid_in_VDE  ),
-		.vid_out_hsync (vid_in_hsync),
-		.vid_out_vsync (vid_in_vsync),
-		.vid_out_data  ({vid_in_r, vid_in_g, vid_in_b}),
-		.vid_in_VDE    (vid_out_VDE  ),
-		.vid_in_hsync  (vid_out_hsync),
-		.vid_in_vsync  (vid_out_vsync),
+		.PixelClk      (PixelClk                         ),
+		.SerialClk     (SerialClk                        ),
+		.vid_rstn      (vid_rstn                         ),
+		.vid_out_VDE   (vid_in_VDE                       ),
+		.vid_out_hsync (vid_in_hsync                     ),
+		.vid_out_vsync (vid_in_vsync                     ),
+		.vid_out_data  ({vid_in_r, vid_in_g, vid_in_b}   ),
+		.vid_in_VDE    (vid_out_VDE                      ),
+		.vid_in_hsync  (vid_out_hsync                    ),
+		.vid_in_vsync  (vid_out_vsync                    ),
 		.vid_in_data   ({vid_out_r, vid_out_g, vid_out_b}),
 
 		/* debug */
@@ -153,17 +166,17 @@ module vdma_top
 	);
 	
 	rgb2dvi_0 rgb2dvi_inst (
-	   .PixelClk    (PixelClk     ),
-	   .SerialClk   (SerialClk    ),
-	   .aRst_n      (vid_rstn     ),
-	   .vid_pData   ({vid_out_r, vid_out_b, vid_out_g}),
-	   .vid_pVDE    (vid_out_VDE      ),
-	   .vid_pHSync  (vid_out_hsync    ),
-	   .vid_pVSync  (vid_out_vsync    ),
-	   .TMDS_Data_p (hdmi_tx_p    ),
-	   .TMDS_Data_n (hdmi_tx_n    ),
-	   .TMDS_Clk_p  (hdmi_tx_clk_p),
-	   .TMDS_Clk_n  (hdmi_tx_clk_n)
+		.PixelClk    (PixelClk                         ),
+		.SerialClk   (SerialClk                        ),
+		.aRst_n      (vid_rstn                         ),
+		.vid_pData   ({vid_out_r, vid_out_b, vid_out_g}),
+		.vid_pVDE    (vid_out_VDE                      ),
+		.vid_pHSync  (vid_out_hsync                    ),
+		.vid_pVSync  (vid_out_vsync                    ),
+		.TMDS_Data_p (hdmi_tx_p                        ),
+		.TMDS_Data_n (hdmi_tx_n                        ),
+		.TMDS_Clk_p  (hdmi_tx_clk_p                    ),
+		.TMDS_Clk_n  (hdmi_tx_clk_n                    )
 	);
 	
 	assign led[2:0]  = {vid_rstn, vid_in_VDE, vid_in_vsync, vid_in_hsync};

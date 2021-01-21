@@ -44,7 +44,7 @@ module vid_sync2cnt
 			hcnt <= 'd0;
 		end
 		else begin
-			if (!prev_hsync && in_hsync) begin
+			if (prev_hsync && !in_hsync) begin
 				hcnt <= H_ACTIVE + H_FRONT_PORCH + 1;
 			end
 			else begin
@@ -60,7 +60,7 @@ module vid_sync2cnt
 			vcnt <= 'd0;
 		end
 		else begin
-			if (!prev_vsync && in_vsync) begin
+			if (prev_vsync && !in_vsync) begin
 				vcnt <= V_ACTIVE + V_FRONT_PORCH;
 			end
 			else if (hcnt == H_FRAME - 1) begin

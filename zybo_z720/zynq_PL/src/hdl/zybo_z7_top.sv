@@ -131,15 +131,35 @@ module zybo_z7_top
 		/* Clock */
 		.PS_CLK_FREQ        (50 * 10 ** 6),
 
-		/* Video */
-		.VID_H_ACTIVE       (        1920),
-		.VID_H_FRONT_PORCH  (          88),
-		.VID_H_SYNC_WIDTH   (          44),
-		.VID_H_BACK_PORCH   (         148),
-		.VID_V_ACTIVE       (        1080),
-		.VID_V_FRONT_PORCH  (           4),
-		.VID_V_SYNC_WIDTH   (           5),
-		.VID_V_BACK_PORCH   (          36),
+		/* Video (1080p) */
+		//.VID_H_ACTIVE       (        1920),
+		//.VID_H_FRONT_PORCH  (          88),
+		//.VID_H_SYNC_WIDTH   (          44),
+		//.VID_H_BACK_PORCH   (         148),
+		//.VID_V_ACTIVE       (        1080),
+		//.VID_V_FRONT_PORCH  (           4),
+		//.VID_V_SYNC_WIDTH   (           5),
+		//.VID_V_BACK_PORCH   (          36),
+
+		/* Video (720p) */
+		//.VID_H_ACTIVE       (        1280),
+		//.VID_H_FRONT_PORCH  (         110),
+		//.VID_H_SYNC_WIDTH   (          40),
+		//.VID_H_BACK_PORCH   (         220),
+		//.VID_V_ACTIVE       (         720),
+		//.VID_V_FRONT_PORCH  (           5),
+		//.VID_V_SYNC_WIDTH   (           5),
+		//.VID_V_BACK_PORCH   (          20),
+
+		/* Video (VGA) */
+		.VID_H_ACTIVE       (         640),
+		.VID_H_FRONT_PORCH  (          16),
+		.VID_H_SYNC_WIDTH   (          96),
+		.VID_H_BACK_PORCH   (          48),
+		.VID_V_ACTIVE       (         480),
+		.VID_V_FRONT_PORCH  (          10),
+		.VID_V_SYNC_WIDTH   (           2),
+		.VID_V_BACK_PORCH   (          33),
 
 		/* System */
 		.C_S_AXI_DATA_WIDTH (          32),
