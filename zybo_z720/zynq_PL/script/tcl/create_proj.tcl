@@ -41,7 +41,6 @@ update_compile_order -fileset sources_1
 # add Clocking_Wizard
 create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0
 set_property -dict [list CONFIG.PRIM_IN_FREQ.VALUE_SRC USER] [get_bd_cells clk_wiz_0]
-## 1080p
 set_property -dict [list                                 \
 CONFIG.PRIM_IN_FREQ {50.000}                             \
 CONFIG.CLKOUT2_USED {true}                               \
@@ -66,15 +65,6 @@ CONFIG.PRIM_SOURCE {Global_buffer}                       \
 CONFIG.CLKOUT1_DRIVES {BUFG}                             \
 CONFIG.CLKOUT2_DRIVES {BUFG}                             \
 ] [get_bd_cells clk_wiz_0]
-## VGA
-set_property -dict [list                \
-CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {125} \
-CONFIG.MMCM_DIVCLK_DIVIDE {1}           \
-CONFIG.MMCM_CLKFBOUT_MULT_F {20.000}    \
-CONFIG.MMCM_CLKOUT0_DIVIDE_F {8.000}    \
-CONFIG.CLKOUT1_JITTER {154.207}         \
-CONFIG.CLKOUT1_PHASE_ERROR {164.985}    \
-] [get_bd_cells video_dynclk]
 
 # add Zynq Processing System ip
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
@@ -139,6 +129,7 @@ connect_bd_net [get_bd_pins rst_clk_wiz_0_50M/peripheral_aresetn] [get_bd_pins z
 # add Video_DynClk (Clocking Wizard)
 create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 video_dynclk
 set_property -dict [list CONFIG.PRIM_IN_FREQ.VALUE_SRC USER] [get_bd_cells video_dynclk]
+# 1080p
 set_property -dict [list                                 \
 CONFIG.USE_DYN_RECONFIG {true}                           \
 CONFIG.PRIM_IN_FREQ {50.000}                             \
@@ -156,6 +147,15 @@ CONFIG.USE_PHASE_ALIGNMENT {false}                       \
 CONFIG.PRIM_SOURCE {No_buffer}                           \
 CONFIG.CLKOUT1_DRIVES {No_buffer}                        \
 CONFIG.FEEDBACK_SOURCE {FDBK_ONCHIP}                     \
+] [get_bd_cells video_dynclk]
+# VGA
+set_property -dict [list                \
+CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {125} \
+CONFIG.MMCM_DIVCLK_DIVIDE {1}           \
+CONFIG.MMCM_CLKFBOUT_MULT_F {20.000}    \
+CONFIG.MMCM_CLKOUT0_DIVIDE_F {8.000}    \
+CONFIG.CLKOUT1_JITTER {154.207}         \
+CONFIG.CLKOUT1_PHASE_ERROR {164.985}    \
 ] [get_bd_cells video_dynclk]
 connect_bd_intf_net -boundary_type upper [get_bd_intf_pins ps7_0_axi_periph/M02_AXI] [get_bd_intf_pins video_dynclk/s_axi_lite]
 connect_bd_net [get_bd_pins clk_wiz_0/clk_50m] [get_bd_pins video_dynclk/s_axi_aclk]
@@ -343,6 +343,8 @@ create_bd_port -dir O PixelClk
 connect_bd_net [get_bd_pins /DVIClocking_0/PixelClk] [get_bd_ports PixelClk]
 create_bd_port -dir O SerialClk
 connect_bd_net [get_bd_pins /DVIClocking_0/SerialClk] [get_bd_ports SerialClk]
+create_bd_port -dir O -type clk ps_clk
+connect_bd_net [get_bd_pins /clk_wiz_0/clk_50m] [get_bd_ports ps_clk]
 
 # change port name
 set_property name reg_data_out [get_bd_ports reg_data_out_0]
@@ -388,7 +390,7 @@ save_bd_design
 close_bd_design [get_bd_designs block_design]
 
 # Generate IPs and Block Design
-generate_target all [get_files  ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/ip/rgb2dvi_0/rgb2dvi_0.xci]
+generate_target all [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/ip/rgb2dvi_0/rgb2dvi_0.xci]
 generate_target all [get_files ${WORKSPACE_DIR}/vivado_proj/${PROJECT_NAME}.srcs/sources_1/bd/block_design/block_design.bd]
 
 catch { config_ip_cache -export [get_ips -all rgb2dvi_0] }

@@ -84,6 +84,7 @@ module lsd_output_buffer_wp
     end
     else begin
       if(in_flag) begin
+				write_protect <= write_protect;
         if(in_valid && !write_protect) begin
           wr_addr  <= wr_addr + 1;
           //out_ready <= 0;
@@ -95,6 +96,9 @@ module lsd_output_buffer_wp
           write_protect <= in_write_protect;
           //out_ready <= 1;
         end
+				else begin
+					write_protect <= write_protect;
+				end
         wr_addr <= 0;
       end
     end

@@ -23,7 +23,7 @@ module image_processor
 	)
 	(
 		/* clock and reset */
-		input  wire  clk, rst,
+		input  wire  pixelclk, psclk, rst,
 		input  wire  [3:0] sw,
 
 		/* input image */
@@ -32,7 +32,7 @@ module image_processor
 		input  wire  [$clog2(H_FRAME)-1:0] in_hcnt,
 
 		/* a buffer of LSD */
-		input  wire  [$clog2(RAM_SIZE)-1:0] in_lsdbuf_addr,
+		input  wire  [$clog2(RAM_SIZE)-1:0] in_lsdbuf_raddr,
 		input  wire  in_lsdbuf_write_protect,
 		output logic [$clog2(RAM_SIZE)-1:0] out_lsdbuf_line_num,
 		output logic [$clog2(V_FRAME)-1:0]  out_lsdbuf_start_v, out_lsdbuf_end_v,
@@ -62,7 +62,7 @@ module image_processor
 		.BIT_WIDTH (DATA_WIDTH)
 	)
 	rgb2ycbcr_inst (
-		.clock  (clk                                 ),
+		.clock (pixelclk                                 ),
 		.in_r   (in_data[DATA_WIDTH*3-1:DATA_WIDTH*2]),
 		.in_g   (in_data[DATA_WIDTH*2-1:DATA_WIDTH*1]),
 		.in_b   (in_data[DATA_WIDTH  -1:           0]),
@@ -76,7 +76,7 @@ module image_processor
 		.LATENCY      (4      )
 	)
 	coord_adjuster (
-		.clock    (clk      ),
+		.clock    (pixelclk      ),
 		.in_vcnt  (in_vcnt  ),
 		.in_hcnt  (in_hcnt  ),
 		.out_vcnt (gray_vcnt),
@@ -102,7 +102,7 @@ module image_processor
 		.EQUALIZE_HIST ()
 	)
 	contrast_stretch_inst (
-		.clock     (clk      ),
+		.clock     (pixelclk      ),
 		.n_rst     (!rst     ),
 		.in_pixel  (gray_data),
 		.in_vcnt   (gray_vcnt),
@@ -134,7 +134,7 @@ module image_processor
 		.RAM_SIZE     (RAM_SIZE  )
 	)
 	lsd_inst (
-		.clock       (clk        ),
+		.clock       (pixelclk        ),
 		.n_rst       (!rst       ),
 		.in_y        (cs_data    ),
 		.in_vcnt     (cs_vcnt    ),
@@ -158,8 +158,8 @@ module image_processor
 		.RAM_SIZE     (RAM_SIZE  )
 	)
 	lsd_output_buffer_wp_inst (
-		.wclock           (clk                    ),
-		.rclock           (clk                    ),
+		.wclock           (pixelclk                    ),
+		.rclock           (psclk),
 		.n_rst            (!rst                   ),
 		.in_flag          (lsd_flag               ),
 		.in_valid         (lsd_valid              ),
@@ -167,7 +167,7 @@ module image_processor
 		.in_end_v         (lsd_end_v              ),
 		.in_start_h       (lsd_start_h            ),
 		.in_end_h         (lsd_end_h              ),
-		.in_rd_addr       (in_lsdbuf_addr         ),
+		.in_rd_addr       (in_lsdbuf_raddr        ),
 		.in_write_protect (in_lsdbuf_write_protect),
 		.out_ready        (out_lsdbuf_ready       ),
 		.out_line_num     (out_lsdbuf_line_num    ),
@@ -190,9 +190,10 @@ module image_processor
 		.RAM_SIZE     (RAM_SIZE  )
 	)
 	lsd_visualizer_inst (
-		.pixel_clk  (clk        ),
+		.pixel_clk  (pixelclk        ),
 		.rst        (rst        ),
 		.in_valid   (lsd_valid  ),
+		.in_flag    (lsd_flag   ),
 		.in_vcnt    (cs_vcnt    ),
 		.in_hcnt    (cs_hcnt    ),
 		.in_start_v (lsd_start_v),

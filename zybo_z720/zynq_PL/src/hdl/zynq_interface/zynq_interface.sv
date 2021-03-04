@@ -14,11 +14,9 @@
 module zynq_ps_interface
 	#(
 		/* Simple-LSD */
-		parameter integer CAM_IMAGE_HEIGHT  = -1,
-		parameter integer CAM_IMAGE_WIDTH   = -1,
-		parameter integer CAM_FRAME_HEIGHT  = -1,
-		parameter integer CAM_FRAME_WIDTH   = -1,
-		parameter integer LSDBUF_RAM_SIZE   = -1,
+		parameter integer H_FRAME           = -1,
+		parameter integer V_FRAME           = -1,
+		parameter integer LSD_BUFSIZE       = -1,
 
 		/* PS-PL */
 		// Width of S_AXI data bus
@@ -39,10 +37,18 @@ module zynq_ps_interface
 		output wire vid_out_vsync,
 		output wire vid_out_VDE,
 		output wire [23:0] vid_out_data,
-		input  wire vid_in_hsync,
-		input  wire vid_in_vsync,
-		input  wire vid_in_VDE,
-		input  wire [23:0] vid_in_data,
+		//input  wire vid_in_hsync,
+		//input  wire vid_in_vsync,
+		//input  wire vid_in_VDE,
+		//input  wire [23:0] vid_in_data,
+
+		/* LSD Buffer (to Userspace I/O) */
+		output reg  out_lsdbuf_write_protect,
+		output reg  [$clog2(LSD_BUFSIZE)-1:0] out_lsdbuf_raddr,
+		input  wire [$clog2(LSD_BUFSIZE)-1:0] in_lsdbuf_line_num,
+		input  wire [$clog2(H_FRAME)-1:0] in_lsdbuf_start_h, in_lsdbuf_end_h,
+		input  wire [$clog2(V_FRAME)-1:0] in_lsdbuf_start_v, in_lsdbuf_end_v,
+		input  wire in_lsdbuf_ready,
 
 		/* Test */
 		input  wire [3:0]  sw,
@@ -73,10 +79,37 @@ module zynq_ps_interface
 	wire [C_S_AXI_DATA_WIDTH-1:0] slv_wire24, slv_wire25, slv_wire26, slv_wire27;
 	wire [C_S_AXI_DATA_WIDTH-1:0] slv_wire28, slv_wire29, slv_wire30, slv_wire31;
 
+	
+	/* for evaluation */
+	//wire arvalid, tvalid, clk_150m;
+	//wire ar_flag;
+	//reg flag0 = 0, flag1 = 1, flag2 = 1, tvalid_buf = 0;
+	//reg [31:0] ar_cnt = 0, t_cnt = 0;
+	//assign ar_flag = flag0 & flag1;
+	//always @(posedge clk_150m) begin
+	//   tvalid_buf <= tvalid;
+	//   if (arvalid) begin
+	//       flag0 <= 1'b1;
+	//   end
+	//   if (tvalid) begin
+	//       flag1 <= 1'b0;
+	//   end
+	//   if (!tvalid & !flag1) begin
+	//       flag2 <= 1'b0;
+	//   end
+	//   
+	//   if (ar_flag) begin
+	//       ar_cnt <= ar_cnt + 1;
+	//   end
+	//   if (tvalid & flag2) begin
+	//       t_cnt <= t_cnt + 1;
+	//   end
+	//end
+
 	/* Block Design */
 	block_design_wrapper block_design_inst0 (
 		/* zynq clock (50 MHz) */
-		//.FCLK_CLK0 (ps_clk),
+		.ps_clk (ps_clk),
 		
 
 		/* Video Direct Memory Access */
@@ -87,13 +120,6 @@ module zynq_ps_interface
 		.vid_io_out_hsync        (vid_out_hsync),
 		.vid_io_out_vsync        (vid_out_vsync),
 		.vid_io_out_active_video (vid_out_VDE  ),
-		.vid_io_in_data          (vid_in_data  ),
-		.vid_io_in_hsync         (vid_in_hsync ),
-		.vid_io_in_vsync         (vid_in_vsync ),
-		.vid_io_in_active_video  (),
-		.vid_io_in_field         (),
-		.vid_io_in_hblank        (),
-		.vid_io_in_vblank        (),
 
 		/* wires of zynq_processor */
 		.axi_araddr   (axi_araddr  ),
@@ -136,12 +162,12 @@ module zynq_ps_interface
 	always @(*) begin
 		// Address decoding for reading registers
 		case ( axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-			5'h00   : reg_data_out <= slv_wire00;
-			5'h01   : reg_data_out <= slv_wire01;
-			5'h02   : reg_data_out <= slv_wire02;
-			5'h03   : reg_data_out <= slv_wire03;
-			5'h04   : reg_data_out <= slv_wire04;
-			5'h05   : reg_data_out <= slv_wire05;
+			5'h00   : reg_data_out <= {{(32-$clog2(LSD_BUFSIZE)){1'b0}}, in_lsdbuf_line_num};
+			5'h01   : reg_data_out <= {31'd0, in_lsdbuf_ready};
+			5'h02   : reg_data_out <= {{(32-$clog2(H_FRAME)){1'b0}}, in_lsdbuf_start_h};
+			5'h03   : reg_data_out <= {{(32-$clog2(V_FRAME)){1'b0}}, in_lsdbuf_start_v};
+			5'h04   : reg_data_out <= {{(32-$clog2(H_FRAME)){1'b0}}, in_lsdbuf_end_h};
+			5'h05   : reg_data_out <= {{(32-$clog2(V_FRAME)){1'b0}}, in_lsdbuf_end_v};
 			5'h06   : reg_data_out <= slv_wire06;
 			5'h07   : reg_data_out <= slv_wire07;
 			5'h08   : reg_data_out <= slv_wire08;
@@ -174,16 +200,16 @@ module zynq_ps_interface
 
 	/* PS -> PL */
 	always @(posedge ps_clk) begin
-		// <= slv_wire0;
-		// <= slv_wire1;
-		// <= slv_wire2;
-		// <= slv_wire3;
-		// <= slv_wire4;
-		// <= slv_wire5;
-		// <= slv_wire6;
-		// <= slv_wire7;
-		// <= slv_wire8;
-		// <= slv_wire9;
+		out_lsdbuf_write_protect <= slv_wire00[0];
+		out_lsdbuf_raddr         <= slv_wire01[$clog2(LSD_BUFSIZE)-1:0];
+		// <= slv_wire02;
+		// <= slv_wire03;
+		// <= slv_wire04;
+		// <= slv_wire05;
+		// <= slv_wire06;
+		// <= slv_wire07;
+		// <= slv_wire08;
+		// <= slv_wire09;
 		// <= slv_wire10;
 		// <= slv_wire11;
 		// <= slv_wire12;

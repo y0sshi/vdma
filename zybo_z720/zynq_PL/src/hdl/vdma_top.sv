@@ -46,6 +46,8 @@ module vdma_top
 	localparam integer VID_V_BLANK = VID_V_FRONT_PORCH + VID_V_SYNC_WIDTH + VID_V_BACK_PORCH;
 	localparam integer VID_H_FRAME = VID_H_ACTIVE + VID_H_BLANK;
 	localparam integer VID_V_FRAME = VID_V_ACTIVE + VID_V_BLANK;
+	localparam integer VID_PIXELS  = VID_H_ACTIVE * VID_V_ACTIVE;
+	localparam integer LSD_BUFSIZE = 4096;
 
 	/* clock and reset */
 	wire ps_clk;     // 50.00 MHz (ps-pl, motor)
@@ -86,37 +88,48 @@ module vdma_top
 		.out_vcnt (vid_in_vcnt ),
 		.out_hcnt (vid_in_hcnt )
 	);
-
+    
 	/* Image Processing */
+	wire [$clog2(LSD_BUFSIZE)-1:0] lsdbuf_raddr, lsdbuf_line_num;
+	wire [$clog2(VID_H_FRAME)-1:0] lsdbuf_start_h, lsdbuf_end_h;
+	wire [$clog2(VID_V_FRAME)-1:0] lsdbuf_start_v, lsdbuf_end_v;
+	wire lsdbuf_write_protect, lsdbuf_ready;
 	image_processor #(
 		.DATA_WIDTH (8           ),
 		.H_ACTIVE   (VID_H_ACTIVE),
 		.V_ACTIVE   (VID_V_ACTIVE),
 		.H_FRAME    (VID_H_FRAME ),
 		.V_FRAME    (VID_V_FRAME ),
-		.RAM_SIZE   (4096        )
+		.RAM_SIZE   (LSD_BUFSIZE )
 	) image_processor_inst (
-		.clk        (PixelClk      ),
-		.rst        (!vid_rstn     ),
-		.sw         (sw            ),
-		.in_data    ({vid_in_r, vid_in_g, vid_in_b}),
-		.in_vcnt    (vid_in_vcnt   ),
-		.in_hcnt    (vid_in_hcnt   ),
-		.out_data   ({vid_out_r, vid_out_g, vid_out_b}),
-		.out_vcnt   (vid_out_vcnt  ),
-		.out_hcnt   (vid_out_hcnt  ),
-		.out_hblank (vid_out_hblank),
-		.out_vblank (vid_out_vblank),
-		.out_field  (vid_out_field ),
-		.out_vde    (vid_out_VDE   ),
-		.in_lsdbuf_addr          (),
-		.in_lsdbuf_write_protect (),
-		.out_lsdbuf_line_num     (),
-		.out_lsdbuf_start_v      (),
-		.out_lsdbuf_start_h      (),
-		.out_lsdbuf_end_v        (),
-		.out_lsdbuf_end_h        (),
-		.out_lsdbuf_ready        ()
+		.pixelclk                (PixelClk      ),
+		.psclk                   (ps_clk        ),
+		.rst                     (!vid_rstn     ),
+		.sw                      (sw            ),
+
+		/* Video input (from VDMA IP) */
+		.in_data                 ({vid_in_r, vid_in_g, vid_in_b}),
+		.in_vcnt                 (vid_in_vcnt   ),
+		.in_hcnt                 (vid_in_hcnt   ),
+
+		/* Video output (to HDMI) */
+		.out_data                ({vid_out_r, vid_out_g, vid_out_b}),
+		.out_vcnt                (vid_out_vcnt  ),
+		.out_hcnt                (vid_out_hcnt  ),
+		.out_hblank              (vid_out_hblank),
+		.out_vblank              (vid_out_vblank),
+		.out_field               (vid_out_field ),
+		.out_vde                 (vid_out_VDE   ),
+
+		/* LSD Buffer (to Userspace I/O) */
+		.out_lsdbuf_line_num     (lsdbuf_line_num     ), // number of lines
+		.in_lsdbuf_raddr         (lsdbuf_raddr        ),
+		.in_lsdbuf_write_protect (lsdbuf_write_protect),
+		.out_lsdbuf_start_v      (lsdbuf_start_v      ),
+		.out_lsdbuf_start_h      (lsdbuf_start_h      ),
+		.out_lsdbuf_end_v        (lsdbuf_end_v        ),
+		.out_lsdbuf_end_h        (lsdbuf_end_h        ),
+		.out_lsdbuf_ready        (lsdbuf_ready        )
 	);
 
 	/* Count to Video Sync */
@@ -130,16 +143,19 @@ module vdma_top
 		.V_SYNC_WIDTH  (VID_V_SYNC_WIDTH ),
 		.V_BACK_PORCH  (VID_V_BACK_PORCH )
 	) vid_cnt2sync_inst (
-		.clk       (PixelClk     ),
-		.rst       (!vid_rstn    ),
-		.in_vcnt   (vid_out_vcnt ),
-		.in_hcnt   (vid_out_hcnt ),
-		.out_vsync (vid_out_vsync),
-		.out_hsync (vid_out_hsync)
+		.clk                      (PixelClk     ),
+		.rst                      (!vid_rstn    ),
+		.in_vcnt                  (vid_out_vcnt   ),
+		.in_hcnt                  (vid_out_hcnt   ),
+		.out_vsync                (vid_out_vsync  ),
+		.out_hsync                (vid_out_hsync  )
 	);
 
 	/* Zynq Interface */
 	zynq_ps_interface #(
+		.H_FRAME            (VID_H_FRAME       ),
+		.V_FRAME            (VID_V_FRAME       ),
+		.LSD_BUFSIZE        (LSD_BUFSIZE       ),
 		.C_S_AXI_DATA_WIDTH (C_S_AXI_DATA_WIDTH),
 		.C_S_AXI_ADDR_WIDTH (C_S_AXI_ADDR_WIDTH)
 	)
@@ -155,13 +171,23 @@ module vdma_top
 		.vid_out_hsync (vid_in_hsync                     ),
 		.vid_out_vsync (vid_in_vsync                     ),
 		.vid_out_data  ({vid_in_r, vid_in_g, vid_in_b}   ),
-		.vid_in_VDE    (vid_out_VDE                      ),
-		.vid_in_hsync  (vid_out_hsync                    ),
-		.vid_in_vsync  (vid_out_vsync                    ),
-		.vid_in_data   ({vid_out_r, vid_out_g, vid_out_b}),
+		//.vid_in_VDE    (vid_out_VDE                      ),
+		//.vid_in_hsync  (vid_out_hsync                    ),
+		//.vid_in_vsync  (vid_out_vsync                    ),
+		//.vid_in_data   ({vid_out_r, vid_out_g, vid_out_b}),
+
+		/* LSD Buffer (to Userspace I/O) */
+		.out_lsdbuf_raddr         (lsdbuf_raddr        ),
+		.out_lsdbuf_write_protect (lsdbuf_write_protect),
+		.in_lsdbuf_line_num       (lsdbuf_line_num     ),
+		.in_lsdbuf_start_v        (lsdbuf_start_v      ),
+		.in_lsdbuf_start_h        (lsdbuf_start_h      ),
+		.in_lsdbuf_end_v          (lsdbuf_end_v        ),
+		.in_lsdbuf_end_h          (lsdbuf_end_h        ),
+		.in_lsdbuf_ready          (lsdbuf_ready        ),
 
 		/* debug */
-		.led       (),
+		.led       (led),
 		.sw        (sw)
 	);
 	
@@ -179,8 +205,44 @@ module vdma_top
 		.TMDS_Clk_n  (hdmi_tx_clk_n                    )
 	);
 	
-	assign led[2:0]  = {vid_rstn, vid_in_VDE, vid_in_vsync, vid_in_hsync};
+	/* Block RAM */
+	//localparam integer VID_PIXELS = VID_H_ACTIVE * VID_V_ACTIVE;
+	//reg [$clog2(VID_PIXELS)-1:0] bram_addr;
+	//wire [23:0] bram_rgb;
+	//reg bram_r, bram_g, bram_b;
+	//BRAM #(
+	//   .DATA_WIDTH (24),
+	//   .FIFO_WIDTH (VID_PIXELS)
+	//) bram_inst(
+	//   .clk   (PixelClk),
+	//   .n_rst (!btn[0] ),
+	//   .ena   (),
+	//   .enb   (1'b1),
+	//   .wea   (),
+	//   .addra (),
+	//   .addrb (bram_addr),
+	//   .dia   (),
+	//   .doa   (),
+	//   .dob   (bram_rgb)
+	//);
+	//always @(posedge PixelClk) begin
+	//   if (!btn[0]) begin
+	//       bram_addr <= 0;
+	//   end
+	//   else begin
+	//       bram_addr <= (bram_addr == VID_PIXELS-1) ? 0 : bram_addr + 1;
+	//   end
+	//end
+    //
+	//always @(posedge PixelClk) begin
+	//   bram_r <= (bram_rgb[23:16] == 8'hff);
+	//   bram_g <= (bram_rgb[15: 8] == 8'hff);
+	//   bram_b <= (bram_rgb[ 7: 0] == 8'hff);
+	//end
+	
+	//assign led[3:2]  = {lsdbuf_write_protect, lsdbuf_ready};
 	assign led5 = {vid_out_r[7], vid_out_g[7], vid_out_b[7]};
+	//assign led5 = {bram_r, bram_g, bram_b};
 	assign led6 = {vid_in_r[7], vid_in_g[7], vid_in_b[7]};
 
 endmodule
